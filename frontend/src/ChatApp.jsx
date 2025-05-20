@@ -6,10 +6,9 @@ import { SERVER_URL } from './config';
 
 const socket = io(SERVER_URL);
 
-const ChatApp = () => {
+const ChatApp = ({ user, onLogout }) => {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
-    const [user] = useState('User' + Math.floor(Math.random() * 1000));
 
     useEffect(() => {
         const fetchMessages = async () => {
@@ -22,7 +21,6 @@ const ChatApp = () => {
         };
 
         fetchMessages();
-
         socket.on('newMessage', (message) => {
             setMessages(prev => [...prev, message]);
         });
@@ -44,7 +42,10 @@ const ChatApp = () => {
 
     return (
         <div className="chat-container">
-            <h2 className="chat-title">💬 Simple Chat App</h2>
+            <div className="chat-header">
+                <h2 className="chat-title">💬 Welcome, {user}</h2>
+                <button onClick={onLogout} className="chat-logout-btn">Logout</button>
+            </div>
             <div className="chat-box">
                 {messages.map((msg) => (
                     <div

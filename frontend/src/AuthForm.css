@@ -1,0 +1,29 @@
+.auth-form-container {
+    max-width: 400px;
+}
+
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.auth-error {
+    color: #dc3545;
+    font-size: 0.9rem;
+    text-align: center;
+    margin-top: -5px;
+}
+
+.auth-toggle {
+    color: #007bff;
+    font-size: 0.9rem;
+    text-align: center;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: color 0.2s;
+}
+
+.auth-toggle:hover {
+    color: #0056b3;
+}
