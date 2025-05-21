@@ -90,7 +90,7 @@ body {
 
 .chat-logout-btn {
     background-color: #007bff;
-    display: none;
+    /* display: none; */
     color: white;
     border: none;
     padding: 8px 14px;

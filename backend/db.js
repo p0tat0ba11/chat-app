@@ -7,6 +7,7 @@ db.prepare(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
+    email TEXT NOT NULL,
     join_line INTEGER DEFAULT 0
   )
 `).run();
