@@ -41,6 +41,15 @@ const AuthForm = ({ onAuth }) => {
 
             const res = await axios.post(`${SERVER_URL}/auth/${endpoint}`, payload);
 
+            if (isSignup) {
+                setIsSignup(false);
+                setUsername('');
+                setPassword('');
+                setEmail('');
+                setError('Signup successful! Please log in.');
+                return;
+            }
+            
             if (res.data.step === '2fa') {
                 setIs2FA(true);
                 setError('');
