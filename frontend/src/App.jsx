@@ -5,11 +5,18 @@ import './ChatApp.css';
 
 function App() {
     const [user, setUser] = useState(null);
+    const [joinLine, setJoinLine] = useState(null);
 
     useEffect(() => {
         const storedUser = localStorage.getItem('chatUser');
         if (storedUser) setUser(storedUser);
     }, []);
+
+    const handleAuth = (username, line) => {
+        localStorage.setItem('chatUser', username);
+        setUser(username);
+        setJoinLine(line);
+    };
 
     const handleLogout = () => {
         localStorage.removeItem('chatUser');
@@ -18,7 +25,13 @@ function App() {
 
     return (
         <>
-            {user ? <ChatApp user={user} onLogout={handleLogout} /> : <AuthForm onAuth={setUser} />}
+            {user ? 
+                <ChatApp
+                    user={user}
+                    joinLine={joinLine}
+                    setJoinLine={setJoinLine}
+                    onLogout={handleLogout}
+                /> : <AuthForm onAuth={handleAuth} />}
         </>
     );
 }

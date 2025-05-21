@@ -17,13 +17,18 @@ app.use('/auth', authRoutes);
 
 // Chat message routes
 app.get('/chat', (req, res) => {
-    try {
-        const rows = db.prepare(`SELECT * FROM messages ORDER BY id ASC`).all();
-        res.json(rows);
-    } catch (err) {
-        console.error('DB error:', err);
-        res.status(500).json({ error: 'Database error' });
-    }
+    const username = req.query.user;
+
+    if (!username) return res.status(400).json({ error: 'Missing user' });
+
+    const user = db.prepare(`SELECT join_line FROM users WHERE username = ?`).get(username);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const messages = db.prepare(`
+        SELECT * FROM messages WHERE id >= ? ORDER BY id ASC
+    `).all(user.join_line || 0);
+
+    res.json(messages);
 });
 
 app.post('/chat', (req, res) => {
@@ -39,6 +44,18 @@ app.post('/chat', (req, res) => {
     const newMessage = { id: result.lastInsertRowid, user, text, timestamp };
     io.emit('newMessage', newMessage);
     res.status(201).json(newMessage);
+});
+
+app.post('/chat/clear-history', (req, res) => {
+    const { username } = req.body;
+    if (!username) return res.status(400).json({ error: 'Missing username' });
+
+    const lastMessage = db.prepare(`SELECT id FROM messages ORDER BY id DESC LIMIT 1`).get();
+    const lastId = lastMessage?.id || 0;
+
+    db.prepare(`UPDATE users SET join_line = ? WHERE username = ?`).run(lastId, username);
+
+    res.json({ message: 'History cleared', new_join_line: lastId });
 });
 
 // Logger

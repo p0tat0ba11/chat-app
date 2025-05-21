@@ -17,7 +17,7 @@ const AuthForm = ({ onAuth }) => {
         try {
             const res = await axios.post(`${SERVER_URL}/auth/${endpoint}`, { username, password });
             localStorage.setItem('chatUser', username);
-            onAuth(username);
+            onAuth(res.data.username, res.data.join_line);
         } catch (err) {
             setError(err.response?.data?.error || 'Auth failed');
         }

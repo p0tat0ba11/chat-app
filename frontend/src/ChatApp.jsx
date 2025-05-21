@@ -6,30 +6,23 @@ import { SERVER_URL } from './config';
 
 const socket = io(SERVER_URL);
 
-const ChatApp = ({ user, onLogout }) => {
+const ChatApp = ({ user, joinLine, onLogout, setJoinLine }) => {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
 
-    useEffect(() => {
-        const fetchMessages = async () => {
-            try {
-                const res = await axios.get(`${SERVER_URL}/chat`);
-                setMessages(res.data);
-            } catch (err) {
-                console.error('Failed to fetch messages:', err);
-            }
-        };
+    // Fetch chat messages starting from joinLine
+    const fetchMessages = async () => {
+        try {
+            const res = await axios.get(`${SERVER_URL}/chat`, {
+                params: { user }
+            });
+            setMessages(res.data);
+        } catch (err) {
+            console.error('Failed to fetch messages:', err);
+        }
+    };
 
-        fetchMessages();
-        socket.on('newMessage', (message) => {
-            setMessages(prev => [...prev, message]);
-        });
-
-        return () => {
-            socket.off('newMessage');
-        };
-    }, []);
-
+    // Send a new chat message
     const sendMessage = async () => {
         if (!input.trim()) return;
         try {
@@ -40,12 +33,46 @@ const ChatApp = ({ user, onLogout }) => {
         }
     };
 
+    // Clear chat history (sets a new joinLine for the user)
+    const clearMessages = async () => {
+        try {
+            const res = await axios.post(`${SERVER_URL}/chat/clear-history`, {
+                username: user
+            });
+
+            if (res.data.new_join_line !== undefined) {
+                setJoinLine(res.data.new_join_line);
+                setMessages([]); // Optionally clear visible messages
+            }
+        } catch (err) {
+            console.error('Failed to clear history:', err);
+        }
+    };
+
+    // Setup socket and initial fetch
+    useEffect(() => {
+        fetchMessages();
+
+        const handleNewMessage = (message) => {
+            setMessages((prev) => [...prev, message]);
+        };
+
+        socket.on('newMessage', handleNewMessage);
+
+        return () => {
+            socket.off('newMessage', handleNewMessage);
+        };
+    }, [joinLine]); // ✅ refetch when joinLine changes
+
     return (
         <div className="chat-container">
             <div className="chat-header">
                 <h2 className="chat-title">💬 Welcome, {user}</h2>
-                <button onClick={onLogout} className="chat-logout-btn">Logout</button>
+                <div>
+                    <button onClick={onLogout} className="chat-logout-btn">Logout</button>
+                </div>
             </div>
+
             <div className="chat-box">
                 {messages.map((msg) => (
                     <div
@@ -60,6 +87,7 @@ const ChatApp = ({ user, onLogout }) => {
                     </div>
                 ))}
             </div>
+
             <div className="chat-input-area">
                 <input
                     value={input}
@@ -68,9 +96,8 @@ const ChatApp = ({ user, onLogout }) => {
                     placeholder="Type a message..."
                     className="chat-input"
                 />
-                <button onClick={sendMessage} className="chat-send-btn">
-                    Send
-                </button>
+                <button onClick={sendMessage} className="chat-send-btn">Send</button>
+                <button onClick={clearMessages} className="chat-clear-btn">Clear</button>
             </div>
         </div>
     );
