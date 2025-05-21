@@ -89,8 +89,7 @@ body {
 }
 
 .chat-logout-btn {
-    background-color: #007bff;
-    /* display: none; */
+    background-color: #b3b5d8;
     color: white;
     border: none;
     padding: 8px 14px;
@@ -98,7 +97,6 @@ body {
     border-radius: 6px;
     cursor: pointer;
     transition: background-color 0.2s ease;
-    box-shadow: 0 2px 6px rgba(255, 77, 79, 0.2);
 }
 
 .chat-logout-btn:hover {

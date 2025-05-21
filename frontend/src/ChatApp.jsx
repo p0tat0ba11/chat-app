@@ -68,9 +68,6 @@ const ChatApp = ({ user, joinLine, onLogout, setJoinLine }) => {
         <div className="chat-container">
             <div className="chat-header">
                 <h2 className="chat-title">💬 Welcome, {user}</h2>
-                <div>
-                    <button onClick={onLogout} className="chat-logout-btn">Logout</button>
-                </div>
             </div>
 
             <div className="chat-box">
@@ -98,6 +95,7 @@ const ChatApp = ({ user, joinLine, onLogout, setJoinLine }) => {
                 />
                 <button onClick={sendMessage} className="chat-send-btn">Send</button>
                 <button onClick={clearMessages} className="chat-clear-btn">Clear</button>
+                <button onClick={onLogout} className="chat-logout-btn">Logout</button>
             </div>
         </div>
     );
