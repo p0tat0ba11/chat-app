@@ -1,11 +1,12 @@
-// server/server.js
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const http = require('http');
+const path = require('path');
 const { Server } = require('socket.io');
 const db = require('./db');
 const authRoutes = require('./routes/auth');
+const userRoutes = require('./routes/user');
 
 const app = express();
 const server = http.createServer(app);
@@ -14,20 +15,16 @@ const io = new Server(server, { cors: { origin: '*' } });
 app.use(cors());
 app.use(express.json());
 app.use('/auth', authRoutes);
+app.use('/user', userRoutes);
+app.use(express.static('public'));
+app.use('/icon', express.static(path.join(__dirname, 'public/icons')));
 
-// Chat message routes
+
+// Public chat messages (broadcast)
 app.get('/chat', (req, res) => {
-    const username = req.query.user;
-
-    if (!username) return res.status(400).json({ error: 'Missing user' });
-
-    const user = db.prepare(`SELECT join_line FROM users WHERE username = ?`).get(username);
-    if (!user) return res.status(404).json({ error: 'User not found' });
-
     const messages = db.prepare(`
-        SELECT * FROM messages WHERE id >= ? ORDER BY id ASC
-    `).all(user.join_line || 0);
-
+        SELECT * FROM messages ORDER BY id ASC
+    `).all();
     res.json(messages);
 });
 
@@ -46,16 +43,9 @@ app.post('/chat', (req, res) => {
     res.status(201).json(newMessage);
 });
 
+// Clear history for front-end only (not deleting messages)
 app.post('/chat/clear-history', (req, res) => {
-    const { username } = req.body;
-    if (!username) return res.status(400).json({ error: 'Missing username' });
-
-    const lastMessage = db.prepare(`SELECT id FROM messages ORDER BY id DESC LIMIT 1`).get();
-    const lastId = lastMessage?.id || 0;
-
-    db.prepare(`UPDATE users SET join_line = ? WHERE username = ?`).run(lastId, username);
-
-    res.json({ message: 'History cleared', new_join_line: lastId });
+    res.json({ message: 'History cleared (client only)' });
 });
 
 // Logger

@@ -1,56 +1,78 @@
 import { useEffect, useState } from 'react';
-import axios from 'axios';
 import { io } from 'socket.io-client';
 import './ChatApp.css';
 import { SERVER_URL } from './config';
+import Sidebar from './components/Sidebar';
 
 const socket = io(SERVER_URL);
 
-const ChatApp = ({ user, joinLine, onLogout, setJoinLine }) => {
+const ChatApp = ({ onLogout }) => {
+    const [user, setUser] = useState(localStorage.getItem('chatUser'));
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
+    const [userInfo, setUserInfo] = useState(null);
 
-    // Fetch chat messages starting from joinLine
+    // 取得使用者資訊（含頭像）
+    const fetchUserInfo = async () => {
+        try {
+            const res = await fetch(`${SERVER_URL}/user/${user}`);
+            if (!res.ok) throw new Error('Failed to fetch user info');
+            const data = await res.json();
+            console.log('User info fetched:', data);
+            setUserInfo(data);
+        } catch (err) {
+            console.error('Failed to fetch user info:', err);
+        }
+    };
+
+    // 取得所有聊天訊息
     const fetchMessages = async () => {
         try {
-            const res = await axios.get(`${SERVER_URL}/chat`, {
-                params: { user }
-            });
-            setMessages(res.data);
+            const res = await fetch(`${SERVER_URL}/chat?user=${encodeURIComponent(user)}`);
+            if (!res.ok) throw new Error('Failed to fetch messages');
+            const data = await res.json();
+            setMessages(data);
         } catch (err) {
             console.error('Failed to fetch messages:', err);
         }
     };
 
-    // Send a new chat message
+    // 傳送訊息
     const sendMessage = async () => {
         if (!input.trim()) return;
         try {
-            await axios.post(`${SERVER_URL}/chat`, { user, text: input });
+            const res = await fetch(`${SERVER_URL}/chat`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user, text: input })
+            });
+            if (!res.ok) throw new Error('Failed to send message');
             setInput('');
         } catch (err) {
             console.error('Failed to send message:', err);
         }
     };
 
-    // Clear chat history (sets a new joinLine for the user)
+    // 清除訊息記錄
     const clearMessages = async () => {
         try {
-            const res = await axios.post(`${SERVER_URL}/chat/clear-history`, {
-                username: user
+            const res = await fetch(`${SERVER_URL}/chat/clear-history`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: user })
             });
-
-            if (res.data.new_join_line !== undefined) {
-                setJoinLine(res.data.new_join_line);
-                setMessages([]); // Optionally clear visible messages
-            }
+            if (!res.ok) throw new Error('Failed to clear history');
+            setMessages([]);
         } catch (err) {
             console.error('Failed to clear history:', err);
         }
     };
 
-    // Setup socket and initial fetch
+    // 初始化與 Socket 監聽
     useEffect(() => {
+        if (!user) return;
+
+        fetchUserInfo();
         fetchMessages();
 
         const handleNewMessage = (message) => {
@@ -62,40 +84,41 @@ const ChatApp = ({ user, joinLine, onLogout, setJoinLine }) => {
         return () => {
             socket.off('newMessage', handleNewMessage);
         };
-    }, [joinLine]); // ✅ refetch when joinLine changes
+    }, [user]);
 
     return (
-        <div className="chat-container">
-            <div className="chat-header">
-                <h2 className="chat-title">💬 Welcome, {user}</h2>
-            </div>
+        <div className="chatapp-layout">
+            <Sidebar userInfo={userInfo} setUserInfo={setUserInfo} />
 
-            <div className="chat-box">
-                {messages.map((msg) => (
-                    <div
-                        key={msg.id}
-                        className={`chat-message ${msg.user === user ? 'my-message' : ''}`}
-                    >
-                        <div className="chat-meta">
-                            <strong>{msg.user}</strong>
-                            <span>{new Date(msg.timestamp).toLocaleTimeString()}</span>
+            <div className="chat-container">
+
+                <div className="chat-box">
+                    {messages.map((msg) => (
+                        <div
+                            key={msg.id}
+                            className={`chat-message ${msg.user === user ? 'my-message' : ''}`}
+                        >
+                            <div className="chat-meta">
+                                <strong>{msg.user}</strong>
+                                <span>{new Date(msg.timestamp).toLocaleTimeString()}</span>
+                            </div>
+                            <div className="chat-text">{msg.text}</div>
                         </div>
-                        <div className="chat-text">{msg.text}</div>
-                    </div>
-                ))}
-            </div>
+                    ))}
+                </div>
 
-            <div className="chat-input-area">
-                <input
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                    placeholder="Type a message..."
-                    className="chat-input"
-                />
-                <button onClick={sendMessage} className="chat-send-btn">Send</button>
-                <button onClick={clearMessages} className="chat-clear-btn">Clear</button>
-                <button onClick={onLogout} className="chat-logout-btn">Logout</button>
+                <div className="chat-input-area">
+                    <input
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                        placeholder="Type a message..."
+                        className="chat-input"
+                    />
+                    <button onClick={sendMessage} className="chat-send-btn">Send</button>
+                    <button onClick={clearMessages} className="chat-clear-btn">Clear</button>
+                    <button onClick={onLogout} className="chat-logout-btn">Logout</button>
+                </div>
             </div>
         </div>
     );

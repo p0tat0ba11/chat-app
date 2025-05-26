@@ -1,0 +1,103 @@
+/* Option.css */
+
+.option-container {
+  position: fixed;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #f9f9fb;
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+  padding: 20px;
+  z-index: 1000;
+  min-width: 320px;
+  max-width: 90vw;
+  min-height: 450px;
+  font-family: "Segoe UI", sans-serif;
+}
+
+.option-container h3 {
+  margin-top: 0;
+  margin-bottom: 16px;
+  text-align: center;
+  color: #333;
+}
+
+.option-container p {
+    text-align: center;
+    color: #333;
+}
+
+.option-container input[type="text"],
+.option-container input[type="password"],
+.option-container input[type="file"] {
+    width: calc(100% - 28px);
+    padding: 10px 14px;
+    margin: auto;
+    display: block;
+    border: 1px solid #bbb;
+    border-radius: 10px;
+    font-size: 1rem;
+    background-color: #fff;
+    color: #222;
+    transition: border-color 0.2s;
+}
+
+.option-container input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0,123,255,0.2);
+}
+
+.option-container button {
+  padding: 12px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  width: 100%;
+  margin-top: 12px;
+}
+
+.option-container button:hover {
+  background-color: #0056b3;
+}
+
+.option-container .settings-options {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.option-container .settings-options button {
+  flex: 1;
+  background-color: #444;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.option-container .settings-options button:hover {
+  background-color: #666;
+}
+
+.option-container img {
+  display: block;
+  margin: 0 auto 12px auto;
+  border-radius: 50%;
+  max-width: 60px;
+  height: auto;
+}
+
+.option-container .error {
+  color: red;
+  margin-top: 12px;
+  text-align: center;
+}

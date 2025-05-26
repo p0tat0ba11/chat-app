@@ -88,7 +88,6 @@ router.post('/verify-token', (req, res) => {
     res.json({
         message: 'Login successful',
         username: user.username,
-        join_line: user.join_line
     });
 });
 
