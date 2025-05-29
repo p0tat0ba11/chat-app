@@ -74,8 +74,8 @@ router.patch('/:username', upload.single('avatar'), (req, res) => {
     // 處理密碼更新
     if (password) {
         const hashed = bcrypt.hashSync(password, 10);
-        updates.password = hashed;
-        updateFields.push(`password = @password`);
+        updates.password_hash = hashed; // 對應資料庫欄位
+        updateFields.push(`password_hash = @password_hash`); // SQL 欄位名稱與參數一致
     }
 
     // 處理頭像更新

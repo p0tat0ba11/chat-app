@@ -31,6 +31,7 @@ const Option = ({ userInfo, setUserInfo, setError }) => {
             if (res.ok && data.success !== false) {
                 setUserInfo((prev) => ({ ...prev, username: newName }));
                 localStorage.setItem('chatUser', newName);
+                setNewName('');
                 setError('');
             } else {
                 setError(data.message || '更新失敗');

@@ -12,7 +12,6 @@ const ChatApp = ({ onLogout }) => {
     const [input, setInput] = useState('');
     const [userInfo, setUserInfo] = useState(null);
 
-    // 取得使用者資訊（含頭像）
     const fetchUserInfo = async () => {
         try {
             const res = await fetch(`${SERVER_URL}/user/${user}`);
@@ -25,7 +24,6 @@ const ChatApp = ({ onLogout }) => {
         }
     };
 
-    // 取得所有聊天訊息
     const fetchMessages = async () => {
         try {
             const res = await fetch(`${SERVER_URL}/chat?user=${encodeURIComponent(user)}`);
@@ -37,7 +35,6 @@ const ChatApp = ({ onLogout }) => {
         }
     };
 
-    // 傳送訊息
     const sendMessage = async () => {
         if (!input.trim()) return;
         try {
@@ -53,7 +50,6 @@ const ChatApp = ({ onLogout }) => {
         }
     };
 
-    // 清除訊息記錄
     const clearMessages = async () => {
         try {
             const res = await fetch(`${SERVER_URL}/chat/clear-history`, {
@@ -68,7 +64,6 @@ const ChatApp = ({ onLogout }) => {
         }
     };
 
-    // 初始化與 Socket 監聽
     useEffect(() => {
         if (!user) return;
 
@@ -86,20 +81,30 @@ const ChatApp = ({ onLogout }) => {
         };
     }, [user]);
 
+    useEffect(() => {
+        if (!userInfo) return;
+
+        if (userInfo.username !== user) {
+            setUser(userInfo.username);
+            localStorage.setItem('chatUser', userInfo.username);
+        }
+
+        fetchMessages();
+    }, [userInfo]);
+
     return (
         <div className="chatapp-layout">
             <Sidebar userInfo={userInfo} setUserInfo={setUserInfo} />
 
             <div className="chat-container">
-
                 <div className="chat-box">
                     {messages.map((msg) => (
                         <div
                             key={msg.id}
-                            className={`chat-message ${msg.user === user ? 'my-message' : ''}`}
+                            className={`chat-message ${msg.username === user ? 'my-message' : ''}`}
                         >
                             <div className="chat-meta">
-                                <strong>{msg.user}</strong>
+                                <strong>{msg.username}</strong>
                                 <span>{new Date(msg.timestamp).toLocaleTimeString()}</span>
                             </div>
                             <div className="chat-text">{msg.text}</div>

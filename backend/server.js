@@ -23,10 +23,14 @@ app.use('/icon', express.static(path.join(__dirname, 'public/icons')));
 // Public chat messages (broadcast)
 app.get('/chat', (req, res) => {
     const messages = db.prepare(`
-        SELECT * FROM messages ORDER BY id ASC
+        SELECT messages.id, users.username, messages.text, messages.timestamp
+        FROM messages
+        JOIN users ON messages.user_id = users.id
+        ORDER BY messages.id ASC
     `).all();
     res.json(messages);
 });
+
 
 app.post('/chat', (req, res) => {
     const { user, text } = req.body;
@@ -34,11 +38,16 @@ app.post('/chat', (req, res) => {
         return res.status(400).json({ error: 'Missing user or text' });
     }
 
-    const timestamp = new Date().toISOString();
-    const insert = db.prepare(`INSERT INTO messages (user, text, timestamp) VALUES (?, ?, ?)`);
-    const result = insert.run(user, text, timestamp);
+    const userRecord = db.prepare(`SELECT id FROM users WHERE username = ?`).get(user);
+    if (!userRecord) {
+        return res.status(404).json({ error: 'User not found' });
+    }
 
-    const newMessage = { id: result.lastInsertRowid, user, text, timestamp };
+    const timestamp = new Date().toISOString();
+    const insert = db.prepare(`INSERT INTO messages (user_id, text, timestamp) VALUES (?, ?, ?)`);
+    const result = insert.run(userRecord.id, text, timestamp);
+
+    const newMessage = { id: result.lastInsertRowid, username: user, text, timestamp };
     io.emit('newMessage', newMessage);
     res.status(201).json(newMessage);
 });

@@ -41,9 +41,10 @@ db.prepare(`
 db.prepare(`
   CREATE TABLE IF NOT EXISTS messages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user TEXT NOT NULL,
+    user_id INTEGER NOT NULL,
     text TEXT NOT NULL,
-    timestamp TEXT NOT NULL
+    timestamp TEXT NOT NULL,
+    FOREIGN KEY(user_id) REFERENCES users(id)
   )
 `).run();
 
