@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { SERVER_URL } from '../config';
 import './Friend.css';
 
@@ -8,6 +9,7 @@ const Friend = ({ userId }) => {
     const [search, setSearch] = useState('');
     const [searchResult, setSearchResult] = useState(null);
     const [message, setMessage] = useState('');
+    const navigate = useNavigate();
 
     // 取得目前好友列表
     const fetchFriends = async () => {
@@ -23,7 +25,6 @@ const Friend = ({ userId }) => {
 
     useEffect(() => {
         if (userId) fetchFriends();
-        console.log('Fetching friends for user:', userId);
     }, [userId]);
 
     // 搜尋用戶
@@ -76,6 +77,12 @@ const Friend = ({ userId }) => {
         } catch {
             setMessage('伺服器錯誤');
         }
+    };
+
+    const handleChat = (friend) => {
+        navigate(`/chat/${friend.id}`, {
+            state: { friendName: friend.username }
+        });
     };
 
     return (

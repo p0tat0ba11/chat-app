@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import ChatApp from './ChatApp';
 import AuthForm from './AuthForm';
+import ChatRoom from './ChatRoom';
 import './ChatApp.css';
 
 function App() {
@@ -21,14 +23,16 @@ function App() {
         setUser(null);
     };
 
+    if (!user) return <AuthForm onAuth={handleAuth} />;
+
     return (
-        <>
-            {user ? 
-                <ChatApp
-                    user={user}
-                    onLogout={handleLogout}
-                /> : <AuthForm onAuth={handleAuth} />}
-        </>
+        <Router>
+            <Routes>
+                <Route path="/" element={<ChatApp user={user} onLogout={handleLogout} />} />
+                <Route path="/chat/:friendId" element={<ChatRoom user={user} />} />
+                <Route path="*" element={<Navigate to="/" />} />
+            </Routes>
+        </Router>
     );
 }
 

@@ -104,7 +104,7 @@ const ChatApp = ({ onLogout }) => {
                             className={`chat-message ${msg.username === user ? 'my-message' : ''}`}
                         >
                             <div className="chat-meta">
-                                <strong>{msg.username}</strong>
+                                <strong>{msg.username === user? 'You': msg.username}</strong>
                                 <span>{new Date(msg.timestamp).toLocaleTimeString()}</span>
                             </div>
                             <div className="chat-text">{msg.text}</div>
