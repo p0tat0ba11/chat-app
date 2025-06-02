@@ -7,6 +7,7 @@ const { Server } = require('socket.io');
 const db = require('./db');
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
+const friendRoutes = require('./routes/friend');
 
 const app = express();
 const server = http.createServer(app);
@@ -16,6 +17,7 @@ app.use(cors());
 app.use(express.json());
 app.use('/auth', authRoutes);
 app.use('/user', userRoutes);
+app.use('/friends', friendRoutes);
 app.use(express.static('public'));
 app.use('/icon', express.static(path.join(__dirname, 'public/icons')));
 

@@ -38,11 +38,12 @@ router.get('/default-icon', (req, res) => {
 
 // GET /user/:username
 router.get('/:username', (req, res) => {
-    const user = db.prepare(`SELECT username, avatar FROM users WHERE username = ?`).get(req.params.username);
+    const user = db.prepare(`SELECT id, username, avatar FROM users WHERE username = ?`).get(req.params.username);
     if (!user) {
         return res.status(404).json({ error: 'User not found' });
     }
     res.json({
+        id: user.id,
         username: user.username,
         avatar: user.avatar || 'default/smile.png',
     });

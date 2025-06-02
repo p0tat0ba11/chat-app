@@ -45,4 +45,12 @@
     background-color: #555;
 }
 
+.sidebar button {
+    background-color: transparent;
+    border: 1px solid;
+    color: #333;
+}
+.sidebar button:hover {
+    color: #555;
+}
 
