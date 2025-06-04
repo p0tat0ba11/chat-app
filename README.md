@@ -73,7 +73,26 @@ npm start
 ```
 React will run on http://localhost:5173 and communicate with the backend at http://localhost:5000
 
+### 3️⃣ Vault
+```bash
+wget -O - https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(grep -oP '(?<=UBUNTU_CODENAME=).*' /etc/os-release || lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+sudo apt update && sudo apt install vault
+```
+
 ---
+
+## Vault Server Configuration and Start
+Vault Server start with development mode
+```bash
+vault server -dev
+```
+Note: 注意unseal key跟root token在CLI中
+Vault server CORS policy setup (不然無法使用http api request)
+```bash
+curl  --header "X-Vault-Token: {root_token}" -X POST -d '{"allowed_origins": "*"}' http://127.0.0.1:8200/v1/sys/config/cors
+```
+
 
 ## 🌐 Configuration
 Edit `src/config.js` to change the backend server URL:
