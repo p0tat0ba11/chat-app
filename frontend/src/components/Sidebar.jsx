@@ -18,7 +18,6 @@ const Sidebar = ({ userInfo, setUserInfo }) => {
                 setShowFriends(false);
             }
         };
-        console.log(userInfo);
         document.addEventListener('mousedown', handleClickOutside);
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
@@ -59,9 +58,9 @@ const Sidebar = ({ userInfo, setUserInfo }) => {
                         userInfo={userInfo}
                         setUserInfo={setUserInfo}
                         setError={setError}
+                        error={error}
                     />
                     <button onClick={() => setShowSettings(false)}>關閉</button>
-                    {error && <div className="error">{error}</div>}
                 </div>
             )}
 

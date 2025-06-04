@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from 'react';
+import Cookies from 'js-cookie';
 import { SERVER_URL } from '../config';
 import './Option.css';
 
-const Option = ({ userInfo, setUserInfo, setError }) => {
+const Option = ({ userInfo, setUserInfo, setError, error }) => {
     const [mode, setMode] = useState(null);
     const [newName, setNewName] = useState('');
+    const [oldPassword, setOldPassword] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [defaultIcons, setDefaultIcons] = useState([]);
+
+    const token = Cookies.get('token');
 
     useEffect(() => {
         if (mode === 'photo') {
@@ -15,24 +19,26 @@ const Option = ({ userInfo, setUserInfo, setError }) => {
                 .then((res) => res.json())
                 .then(setDefaultIcons)
                 .catch(() => setError('無法載入預設頭像'));
-            console.log(defaultIcons);
         }
     }, [mode]);
 
     const handleNameChange = async () => {
         if (!newName || newName === userInfo.username) return;
         try {
-            const res = await fetch(`${SERVER_URL}/user/${userInfo.username}`, {
+            const res = await fetch(`${SERVER_URL}/user`, {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
                 body: JSON.stringify({ newUsername: newName })
             });
             const data = await res.json();
             if (res.ok && data.success !== false) {
                 setUserInfo((prev) => ({ ...prev, username: newName }));
-                localStorage.setItem('chatUser', newName);
                 setNewName('');
                 setError('');
+                setMode(null);
             } else {
                 setError(data.message || '更新失敗');
             }
@@ -42,21 +48,30 @@ const Option = ({ userInfo, setUserInfo, setError }) => {
     };
 
     const handlePasswordChange = async () => {
+        if (!oldPassword || !password || !confirmPassword) {
+            setError('請填寫所有欄位');
+            return;
+        }
         if (password !== confirmPassword) {
             setError('密碼不一致');
             return;
         }
         try {
-            const res = await fetch(`${SERVER_URL}/user/${userInfo.username}`, {
+            const res = await fetch(`${SERVER_URL}/user`, {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ password })
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({ oldPassword, newPassword: password })
             });
             const data = await res.json();
             if (res.ok && data.success !== false) {
+                setOldPassword('');
                 setPassword('');
                 setConfirmPassword('');
                 setError('');
+                setMode(null);
             } else {
                 setError(data.message || '密碼更新失敗');
             }
@@ -71,15 +86,18 @@ const Option = ({ userInfo, setUserInfo, setError }) => {
         const formData = new FormData();
         formData.append('avatar', file);
         try {
-            const res = await fetch(`${SERVER_URL}/user/${userInfo.username}`, {
+            const res = await fetch(`${SERVER_URL}/user`, {
                 method: 'PATCH',
+                headers: {
+                    Authorization: `Bearer ${token}`
+                },
                 body: formData
             });
             const data = await res.json();
             if (res.ok && data.success !== false) {
-                const photoUrl = `${SERVER_URL}/icons/${data.updates.avatar}`;
                 setUserInfo((prev) => ({ ...prev, avatar: data.updates.avatar }));
                 setError('');
+                setMode(null);
             } else {
                 setError(data.message || '頭像更新失敗');
             }
@@ -90,15 +108,19 @@ const Option = ({ userInfo, setUserInfo, setError }) => {
 
     const handleSelectDefault = async (filename) => {
         try {
-            const res = await fetch(`${SERVER_URL}/user/${userInfo.username}`, {
+            const res = await fetch(`${SERVER_URL}/user`, {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
                 body: JSON.stringify({ selectedPhoto: filename })
             });
             const data = await res.json();
             if (res.ok && data.success !== false) {
                 setUserInfo((prev) => ({ ...prev, avatar: data.updates.avatar }));
                 setError('');
+                setMode(null);
             } else {
                 setError(data.message || '選擇預設頭像失敗');
             }
@@ -127,6 +149,7 @@ const Option = ({ userInfo, setUserInfo, setError }) => {
                 <button onClick={() => setMode('password')}>變更密碼</button>
                 <button onClick={() => setMode('photo')}>變更頭像</button>
             </div>
+            {error && <p className="error">{error}</p>}
 
             {mode === 'name' && (
                 <div className="option-form">
@@ -138,10 +161,24 @@ const Option = ({ userInfo, setUserInfo, setError }) => {
 
             {mode === 'password' && (
                 <div className="option-form">
+                    <label>舊密碼：</label>
+                    <input
+                        type="password"
+                        value={oldPassword}
+                        onChange={(e) => setOldPassword(e.target.value)}
+                    />
                     <label>新密碼：</label>
-                    <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                    <input
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                    />
                     <label>確認密碼：</label>
-                    <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+                    <input
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                    />
                     <button className="confirm-button" onClick={handlePasswordChange}>確認變更</button>
                 </div>
             )}

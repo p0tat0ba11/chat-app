@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import Cookies from 'js-cookie';
 import { useNavigate } from 'react-router-dom';
 import { SERVER_URL } from '../config';
 import './Friend.css';
@@ -11,15 +12,27 @@ const Friend = ({ userId }) => {
     const [message, setMessage] = useState('');
     const navigate = useNavigate();
 
-    // 取得目前好友列表
+    const token = Cookies.get('token');
+
     const fetchFriends = async () => {
         try {
-            const res = await fetch(`${SERVER_URL}/friends/${userId}`);
-            if (!res.ok) throw new Error('Failed to fetch friends');
+            const res = await fetch(`${SERVER_URL}/friends`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
             const data = await res.json();
-            setFriends(data);
-        } catch (err) {
-            setError('無法載入好友列表');
+            if (res.ok && data.success !== false) {
+                setError('');
+                setFriends(data);
+            } else {
+                setError(data.message || '無法載入朋友列表');
+                setFriends([]);
+            }
+        }
+        catch (err) {
+            console.error(err);
+            setError(err);
         }
     };
 
@@ -27,14 +40,17 @@ const Friend = ({ userId }) => {
         if (userId) fetchFriends();
     }, [userId]);
 
-    // 搜尋用戶
     const handleSearch = async () => {
         setSearchResult(null);
         setMessage('');
         if (!search.trim()) return;
 
         try {
-            const res = await fetch(`${SERVER_URL}/friends/search/user?query=${encodeURIComponent(search)}`);
+            const res = await fetch(`${SERVER_URL}/friends/search/user?query=${encodeURIComponent(search)}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
             const data = await res.json();
 
             if (!res.ok || data.length === 0) {
@@ -56,12 +72,14 @@ const Friend = ({ userId }) => {
         }
     };
 
-    // 新增好友
     const handleAddFriend = async () => {
         try {
             const res = await fetch(`${SERVER_URL}/friends/add`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
                 body: JSON.stringify({ userId, friendId: searchResult.id }),
             });
 
@@ -69,13 +87,14 @@ const Friend = ({ userId }) => {
             if (res.ok && data.success) {
                 setMessage('已成功加入好友');
                 setFriends(prev => [...prev, searchResult]);
+                setError('');
                 setSearch('');
                 setSearchResult(null);
             } else {
-                setMessage(data.error || '無法加入好友');
+                setError(data.error || '無法加入好友');
             }
         } catch {
-            setMessage('伺服器錯誤');
+            setError('伺服器錯誤');
         }
     };
 

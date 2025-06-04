@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import Cookies from 'js-cookie';
 import ChatApp from './ChatApp';
 import AuthForm from './AuthForm';
 import ChatRoom from './ChatRoom';
@@ -8,18 +9,21 @@ import './ChatApp.css';
 function App() {
     const [user, setUser] = useState(null);
 
-    useEffect(() => {
-        const storedUser = localStorage.getItem('chatUser');
+    useEffect(() => { // auto-login
+        const storedUser = Cookies.get('chatUser');
         if (storedUser) setUser(storedUser);
     }, []);
 
-    const handleAuth = (username) => {
-        localStorage.setItem('chatUser', username);
-        setUser(username);
+
+    const handleAuth = (userId, token) => {
+        Cookies.set('chatUser', userId, { expires: 7 });
+        Cookies.set('token', token, { expires: 7 });
+        setUser(userId);
     };
 
     const handleLogout = () => {
-        localStorage.removeItem('chatUser');
+        Cookies.remove('chatUser');
+        Cookies.remove('token');
         setUser(null);
     };
 

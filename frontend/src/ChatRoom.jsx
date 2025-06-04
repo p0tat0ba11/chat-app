@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
+import Cookies from 'js-cookie';
 import { io } from 'socket.io-client';
 import { SERVER_URL } from './config';
 import Sidebar from './components/Sidebar';
@@ -7,33 +8,46 @@ import './ChatRoom.css';
 
 const socket = io(SERVER_URL);
 
-const ChatRoom = ({ user }) => {
+const ChatRoom = () => {
     const { friendId } = useParams();
     const { state } = useLocation();
     const friendName = state?.friendName || 'Friend';
-
+    
     const [userInfo, setUserInfo] = useState(null);
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
 
-    // 取得登入者資訊
+    const userId = Cookies.get('chatUser');
+    const token = Cookies.get('token');
+    
     const fetchUserInfo = async () => {
         try {
-            const res = await fetch(`${SERVER_URL}/user/${user}`);
+            console.log("Server URL:", SERVER_URL);
+            const res = await fetch(`${SERVER_URL}/user`, {
+                method: 'GET',
+                headers: {
+                    Authorization: `Bearer ${token}`
+                },
+                credentials: 'include'
+            });
             if (!res.ok) throw new Error('Failed to fetch user info');
             const data = await res.json();
+            console.log('Fetched user info:', data);
             setUserInfo(data);
         } catch (err) {
             console.error('Failed to fetch user info:', err);
         }
     };
 
-    // 取得與好友的私訊
     const fetchMessages = async () => {
-        if (!userInfo?.id || !friendId) return;
+        if (!userId || !friendId || !token) return;
 
         try {
-            const res = await fetch(`${SERVER_URL}/friends/chat?userId=${userInfo.id}&friendId=${friendId}`);
+            const res = await fetch(`${SERVER_URL}/friends/chat?userId=${userId}&friendId=${friendId}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
             if (!res.ok) throw new Error('Failed to fetch private messages');
             const data = await res.json();
             setMessages(data);
@@ -43,14 +57,17 @@ const ChatRoom = ({ user }) => {
     };
 
     const sendMessage = async () => {
-        if (!input.trim()) return;
+        if (!input.trim() || !token) return;
 
         try {
             const res = await fetch(`${SERVER_URL}/friends/chat`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
                 body: JSON.stringify({
-                    senderId: userInfo.id,
+                    senderId: userId,
                     receiverId: friendId,
                     message: input.trim(),
                 }),
@@ -61,23 +78,20 @@ const ChatRoom = ({ user }) => {
             const sentMsg = await res.json();
             setMessages((prev) => [...prev, sentMsg]);
             setInput('');
-            socket.emit('privateMessage', sentMsg); // 可選擇送出給對方（取決於伺服器設定）
+            socket.emit('privateMessage', sentMsg);
         } catch (err) {
             console.error('Failed to send private message:', err);
         }
     };
 
-    // 初次載入：抓 userInfo
     useEffect(() => {
-        if (user) fetchUserInfo();
-    }, [user]);
+        if (userId) fetchUserInfo();
+    }, [userId]);
 
-    // userInfo 準備好 → 抓對話紀錄
     useEffect(() => {
         if (userInfo?.id && friendId) fetchMessages();
     }, [userInfo, friendId]);
 
-    // WebSocket 即時更新
     useEffect(() => {
         const handleIncoming = (message) => {
             const isForThisRoom =
@@ -90,10 +104,7 @@ const ChatRoom = ({ user }) => {
         };
 
         socket.on('privateMessage', handleIncoming);
-
-        return () => {
-            socket.off('privateMessage', handleIncoming);
-        };
+        return () => socket.off('privateMessage', handleIncoming);
     }, [userInfo, friendId]);
 
     return (

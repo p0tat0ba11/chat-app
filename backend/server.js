@@ -5,6 +5,7 @@ const http = require('http');
 const path = require('path');
 const { Server } = require('socket.io');
 const db = require('./db');
+const { authenticate } = require('./middleware/auth');
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
 const friendRoutes = require('./routes/friend');
@@ -13,7 +14,18 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' } });
 
-app.use(cors());
+app.use((req, res, next) => {
+    const timestamp = new Date().toISOString();
+    const method = req.method;
+    const url = req.originalUrl;
+    console.log(`[${timestamp}] ${method} ${url}`);
+    next();
+});
+
+app.use(cors({
+    origin: 'http://localhost:5173',
+    credentials: true
+}));
 app.use(express.json());
 app.use('/auth', authRoutes);
 app.use('/user', userRoutes);
@@ -22,8 +34,8 @@ app.use(express.static('public'));
 app.use('/icon', express.static(path.join(__dirname, 'public/icons')));
 
 
-// Public chat messages (broadcast)
-app.get('/chat', (req, res) => {
+// 取得公開聊天訊息（需要驗證）
+app.get('/chat', authenticate, (req, res) => {
     const messages = db.prepare(`
         SELECT messages.id, users.username, messages.text, messages.timestamp
         FROM messages
@@ -33,30 +45,34 @@ app.get('/chat', (req, res) => {
     res.json(messages);
 });
 
+// 發送公開訊息（需要驗證）
+app.post('/chat', authenticate, (req, res) => {
+    console.log('Sending chat message', req.body);
+    const { text } = req.body;
+    const userId = req.user.id;
 
-app.post('/chat', (req, res) => {
-    const { user, text } = req.body;
-    if (!user || !text) {
-        return res.status(400).json({ error: 'Missing user or text' });
+    if (!text) {
+        return res.status(400).json({ error: 'Missing text' });
     }
 
-    const userRecord = db.prepare(`SELECT id FROM users WHERE username = ?`).get(user);
+    const userRecord = db.prepare(`SELECT username FROM users WHERE id = ?`).get(userId);
     if (!userRecord) {
         return res.status(404).json({ error: 'User not found' });
     }
 
     const timestamp = new Date().toISOString();
-    const insert = db.prepare(`INSERT INTO messages (user_id, text, timestamp) VALUES (?, ?, ?)`);
-    const result = insert.run(userRecord.id, text, timestamp);
+    const result = db.prepare(`INSERT INTO messages (user_id, text, timestamp) VALUES (?, ?, ?)`)
+        .run(userId, text, timestamp);
 
-    const newMessage = { id: result.lastInsertRowid, username: user, text, timestamp };
+    const newMessage = {
+        id: result.lastInsertRowid,
+        username: userRecord.username,
+        text,
+        timestamp
+    };
+
     io.emit('newMessage', newMessage);
     res.status(201).json(newMessage);
-});
-
-// Clear history for front-end only (not deleting messages)
-app.post('/chat/clear-history', (req, res) => {
-    res.json({ message: 'History cleared (client only)' });
 });
 
 // Logger

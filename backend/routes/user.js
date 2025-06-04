@@ -3,45 +3,40 @@ const fs = require('fs');
 const path = require('path');
 const bcrypt = require('bcrypt');
 const multer = require('multer');
+const { authenticate } = require('../middleware/auth');
+const db = require('../db');
+const { isStrongPassword } = require('./auth');
 const router = express.Router();
-const db = require('../db'); // better-sqlite3 instance
 
 const ICON_PATH = path.join(__dirname, '../public/icons');
 const DEFAULT_ICON_PATH = path.join(ICON_PATH, 'default');
 const CUSTOM_ICON_PATH = path.join(ICON_PATH, 'custom');
 
+// 檔案上傳設定
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, CUSTOM_ICON_PATH);
-    },
+    destination: (req, file, cb) => cb(null, CUSTOM_ICON_PATH),
     filename: (req, file, cb) => {
-        const username = req.params.username;
+        const userId = req.user.id;
         const ext = path.extname(file.originalname);
-        cb(null, `${username}-${Date.now()}${ext}`);
+        cb(null, `${userId}-${Date.now()}${ext}`);
     }
 });
 const upload = multer({ storage });
 
-// GET /user/default-icon
+// ✅ 取得預設頭像清單
 router.get('/default-icon', (req, res) => {
     fs.readdir(DEFAULT_ICON_PATH, (err, files) => {
-        if (err) {
-            return res.status(500).json({ error: 'Failed to read default icons', detail: err.message });
-        }
-        if (!files || files.length === 0) {
-            return res.status(404).json({ error: 'No default icons found' });
-        }
-        files = files.map(file => file)
+        if (err) return res.status(500).json({ error: '讀取失敗' });
+        if (!files?.length) return res.status(404).json({ error: '沒有圖示' });
         res.json(files);
     });
 });
 
-// GET /user/:username
-router.get('/:username', (req, res) => {
-    const user = db.prepare(`SELECT id, username, avatar FROM users WHERE username = ?`).get(req.params.username);
-    if (!user) {
-        return res.status(404).json({ error: 'User not found' });
-    }
+// ✅ 取得使用者資訊（需登入）
+router.get('/', authenticate, (req, res) => {
+    const user = db.prepare(`SELECT id, username, avatar FROM users WHERE id = ?`).get(req.user.id);
+    if (!user) return res.status(404).json({ error: '找不到使用者' });
+
     res.json({
         id: user.id,
         username: user.username,
@@ -49,75 +44,75 @@ router.get('/:username', (req, res) => {
     });
 });
 
-// PATCH /user/:username
-router.patch('/:username', upload.single('avatar'), (req, res) => {
-    const { username } = req.params;
-    const { newUsername, password, selectedPhoto } = req.body;
 
-    const user = db.prepare(`SELECT * FROM users WHERE username = ?`).get(username);
-    if (!user) {
-        return res.status(404).json({ error: 'User not found' });
-    }
+// ✅ 更新個人資料（名稱、密碼、頭像）
+router.patch('/', authenticate, upload.single('avatar'), (req, res) => {
+    const { newUsername, oldPassword, newPassword, selectedPhoto } = req.body;
+    const userId = req.user.id;
+    const user = db.prepare(`SELECT * FROM users WHERE id = ?`).get(userId);
+    if (!user) return res.status(404).json({ error: '找不到使用者' });
 
     const updates = {};
-    const updateFields = [];
+    const fields = [];
 
-    // 處理名稱更新
-    if (newUsername && newUsername !== username) {
-        const nameTaken = db.prepare(`SELECT * FROM users WHERE username = ?`).get(newUsername);
-        if (nameTaken) {
-            return res.status(400).json({ error: 'Username already taken' });
-        }
+    // 🟢 變更名稱
+    if (newUsername && newUsername !== user.username) {
+        const exists = db.prepare(`SELECT id FROM users WHERE username = ?`).get(newUsername);
+        if (exists) return res.status(400).json({ error: '名稱已存在' });
         updates.username = newUsername;
-        updateFields.push(`username = @username`);
+        fields.push('username = @username');
     }
 
-    // 處理密碼更新
-    if (password) {
-        const hashed = bcrypt.hashSync(password, 10);
-        updates.password_hash = hashed; // 對應資料庫欄位
-        updateFields.push(`password_hash = @password_hash`); // SQL 欄位名稱與參數一致
+    // 🟢 驗證舊密碼並更新新密碼
+    if (newPassword) {
+        if (!oldPassword) {
+            return res.status(400).json({ error: '請提供舊密碼' });
+        }
+
+        const match = bcrypt.compareSync(oldPassword, user.password_hash);
+        if (!match) {
+            return res.status(403).json({ error: '舊密碼錯誤' });
+        }
+
+        if (!isStrongPassword(newPassword)) {
+            return res.status(400).json({ error: '密碼強度不足' });
+        }
+
+        updates.password_hash = bcrypt.hashSync(newPassword, 10);
+        fields.push('password_hash = @password_hash');
     }
 
-    // 處理頭像更新
-    let newAvatarPath = null;
+    // 🟢 更新頭像
+    let avatarPath = null;
     if (req.file) {
-        newAvatarPath = `custom/${req.file.filename}`;
+        avatarPath = `custom/${req.file.filename}`;
     } else if (selectedPhoto) {
-        const selectedPath = path.join(DEFAULT_ICON_PATH, selectedPhoto);
-        if (fs.existsSync(selectedPath)) {
-            newAvatarPath = `default/${selectedPhoto}`;
-        } else {
-            return res.status(400).json({ error: 'Invalid selected photo' });
-        }
+        const filePath = path.join(DEFAULT_ICON_PATH, selectedPhoto);
+        if (!fs.existsSync(filePath)) return res.status(400).json({ error: '預設圖示不存在' });
+        avatarPath = `default/${selectedPhoto}`;
     }
 
-    if (newAvatarPath) {
-        // 刪除原本 custom 圖片
-        if (user.avatar && user.avatar.startsWith('custom/')) {
+    if (avatarPath) {
+        // 移除舊的 custom 頭像
+        if (user.avatar?.startsWith('custom/')) {
             const oldPath = path.join(CUSTOM_ICON_PATH, path.basename(user.avatar));
-            if (fs.existsSync(oldPath)) {
-                fs.unlinkSync(oldPath);
-            }
+            fs.unlink(oldPath, () => {});
         }
-        updates.avatar = newAvatarPath;
-        updateFields.push(`avatar = @avatar`);
+        updates.avatar = avatarPath;
+        fields.push('avatar = @avatar');
     }
 
-    if (updateFields.length === 0) {
-        return res.status(400).json({ error: 'No updates provided' });
+    if (!fields.length) {
+        return res.status(400).json({ error: '沒有變更內容' });
     }
 
-    const stmt = db.prepare(`
-        UPDATE users SET ${updateFields.join(', ')} WHERE username = @originalUsername
-    `);
-
-    stmt.run({ ...updates, originalUsername: username });
+    db.prepare(`UPDATE users SET ${fields.join(', ')} WHERE id = @userId`)
+        .run({ ...updates, userId });
 
     res.json({
-        message: 'Profile updated successfully',
+        message: '更新成功',
         updates: {
-            username: updates.username || username,
+            username: updates.username || user.username,
             avatar: updates.avatar || user.avatar
         }
     });

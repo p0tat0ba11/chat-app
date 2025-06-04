@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import axios from 'axios';
+
 import { SERVER_URL } from './config';
 import './AuthForm.css';
 
@@ -13,24 +14,21 @@ const AuthForm = ({ onAuth }) => {
     const [error, setError] = useState('');
 
     const handleSubmit = async (e) => {
-        e.preventDefault();
+        e.preventDefault(); // prevent default form submission
 
         if (is2FA) {
-            // Step 2: Verify token
-            try {
+            try { // verify token
                 const res = await axios.post(`${SERVER_URL}/auth/verify-token`, {
                     username,
                     token
                 });
-                localStorage.setItem('chatUser', username);
-                onAuth(res.data.username, res.data.join_line);
+                onAuth(res.data.id, res.data.token);
             } catch (err) {
                 setError(err.response?.data?.error || 'Token verification failed');
             }
             return;
         }
 
-        // Step 1: Signup or Signin
         const endpoint = isSignup ? 'signup' : 'signin';
         try {
             const payload = {
@@ -53,10 +51,8 @@ const AuthForm = ({ onAuth }) => {
             if (res.data.step === '2fa') {
                 setIs2FA(true);
                 setError('');
-            } else {
-                localStorage.setItem('chatUser', res.data.username);
-                onAuth(res.data.username, res.data.join_line);
             }
+            
         } catch (err) {
             setError(err.response?.data?.error || 'Authentication failed');
         }
