@@ -8,6 +8,7 @@ import './ChatRoom.css';
 
 const ChatRoom = () => {
     const socketRef = useRef(null);
+    const chatBoxRef = useRef(null);
     const { friendId } = useParams();
     const { state } = useLocation();
     const friendName = state?.friendName || 'Friend';
@@ -22,7 +23,8 @@ const ChatRoom = () => {
     useEffect(() => {
         if (!socketRef.current) {
             socketRef.current = io(SERVER_URL, {
-            query: { userId: userId, }, });
+                query: { userId: userId },
+            });
 
             socketRef.current.on('connect', () => {
                 console.log('Connected to socket server:', socketRef.current.id);
@@ -80,6 +82,12 @@ const ChatRoom = () => {
         }
     }, [userInfo, friendId]);
 
+    useEffect(() => {
+        if (chatBoxRef.current) {
+            chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight;
+        }
+    }, [messages]);
+
     const sendMessage = async () => {
         if (!input.trim() || !token) return;
         try {
@@ -115,7 +123,7 @@ const ChatRoom = () => {
             <Sidebar userInfo={userInfo} setUserInfo={setUserInfo} />
             <div className="chat-container">
                 <h2 className="chat-title">Chat with {friendName}</h2>
-                <div className="chat-box">
+                <div className="chat-box" ref={chatBoxRef}>
                     {messages.map((msg, index) => (
                         <div key={index} className={`chat-message ${msg.sender_id === userInfo?.id ? 'my-message' : ''}`}>
                             <div className="chat-meta">

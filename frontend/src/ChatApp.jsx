@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { io } from 'socket.io-client';
 import Cookies from 'js-cookie';
 import './ChatApp.css';
@@ -12,12 +12,12 @@ const ChatApp = ({ onLogout }) => {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
     const [userInfo, setUserInfo] = useState(null);
+    const chatBoxRef = useRef(null);
 
     const token = Cookies.get('token');
 
     const fetchUserInfo = async () => {
         try {
-            console.log("Server URL:", SERVER_URL);
             const res = await fetch(`${SERVER_URL}/user`, {
                 method: 'GET',
                 headers: {
@@ -27,7 +27,6 @@ const ChatApp = ({ onLogout }) => {
             });
             if (!res.ok) throw new Error('Failed to fetch user info');
             const data = await res.json();
-            console.log('Fetched user info:', data);
             setUserInfo(data);
         } catch (err) {
             console.error('Failed to fetch user info:', err);
@@ -45,7 +44,6 @@ const ChatApp = ({ onLogout }) => {
             });
             if (!res.ok) throw new Error('Failed to fetch messages');
             const data = await res.json();
-            console.log('Fetched messages:', data);
             setMessages(data);
         } catch (err) {
             console.error('Failed to fetch messages:', err);
@@ -84,11 +82,17 @@ const ChatApp = ({ onLogout }) => {
         return () => socket.off('newMessage', handleNewMessage);
     }, [userId]);
 
+    useEffect(() => {
+        if (chatBoxRef.current) {
+            chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight;
+        }
+    }, [messages]);
+
     return (
         <div className="chatapp-layout">
             <Sidebar userInfo={userInfo} setUserInfo={setUserInfo} />
             <div className="chat-container">
-                <div className="chat-box">
+                <div className="chat-box" ref={chatBoxRef}>
                     {messages.map((msg) => (
                         <div
                             key={msg.id}
@@ -112,7 +116,7 @@ const ChatApp = ({ onLogout }) => {
                         className="chat-input"
                     />
                     <button onClick={sendMessage} className="chat-send-btn">Send</button>
-                    <button onClick={(e) => setMessages([])} className="chat-clear-btn">Clear</button>
+                    <button onClick={() => setMessages([])} className="chat-clear-btn">Clear</button>
                     <button onClick={onLogout} className="chat-logout-btn">Logout</button>
                 </div>
             </div>
