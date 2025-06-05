@@ -75,6 +75,30 @@ app.post('/chat', authenticate, (req, res) => {
     res.status(201).json(newMessage);
 });
 
+const userSocketMap = {}; // userId: socket.id
+
+io.on('connection', (socket) => {
+    const userId = socket.handshake.query.userId;
+    if (userId) {
+        userSocketMap[userId] = socket.id;
+    }
+
+    socket.on('privateMessage', (message) => {
+        const receiverSocketId = userSocketMap[message.receiver_id];
+        if (receiverSocketId) {
+            socket.to(receiverSocketId).emit('privateMessage', message);
+        }
+    });
+
+    socket.on('disconnect', () => {
+        // 清除離線 socket
+        if (userId && userSocketMap[userId] === socket.id) {
+            delete userSocketMap[userId];
+            console.log(`User ${userId} disconnected`);
+        }
+    });
+});
+
 // Logger
 app.use((req, _res, next) => {
     console.log(`[${req.method}] ${req.url}`);
