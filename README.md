@@ -1,4 +1,4 @@
-# 🛡️ Simple Chat App
+# 🛡️ Secure Chat App
 
 A modern, real-time chat application built with **React** and **Express.js**, featuring **Socket.IO** for instant messaging, **SQLite** for lightweight persistence, and **email-based Two-Factor Authentication (2FA)** for enhanced security. Designed with simplicity, security, and scalability in mind.
 
@@ -145,6 +145,7 @@ export const SERVER_URL = 'http://localhost:5000';
 - 🍓 **Deployment on Raspberry Pi**
 - 🌍 **Multi-device Session Sync**
 - 🗄️ **Encrypted Message Storage**
+- 🛡️ **RSA-AES Hybrid Encryption for Group Chat**
 
 ---
 
