@@ -2,9 +2,9 @@ import { useRef, useEffect, useState } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import Cookies from 'js-cookie';
 import { io } from 'socket.io-client';
-import { SERVER_URL } from './config';
-import Sidebar from './components/Sidebar';
-import './ChatRoom.css';
+import { SERVER_URL } from '../config';
+import Sidebar from '../components/Sidebar';
+import '../styles/ChatRoom.css';
 
 const ChatRoom = () => {
     const socketRef = useRef(null);

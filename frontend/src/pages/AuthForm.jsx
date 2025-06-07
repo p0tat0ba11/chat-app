@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import axios from 'axios';
 
-import { SERVER_URL } from './config';
-import './AuthForm.css';
+import { SERVER_URL } from '../config';
+import '../styles/AuthForm.css';
 
 const AuthForm = ({ onAuth }) => {
     const [isSignup, setIsSignup] = useState(false);

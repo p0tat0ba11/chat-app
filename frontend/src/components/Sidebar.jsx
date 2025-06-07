@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import './Sidebar.css';
+import '../styles/Sidebar.css';
 import { SERVER_URL } from '../config';
 import Option from './Option';
 import Friend from './Friend';

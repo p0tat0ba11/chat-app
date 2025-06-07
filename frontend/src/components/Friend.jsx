@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import Cookies from 'js-cookie';
 import { useNavigate } from 'react-router-dom';
 import { SERVER_URL } from '../config';
-import './Friend.css';
+import '../styles/Friend.css';
 
 const Friend = ({ userId }) => {
     const [friends, setFriends] = useState([]);

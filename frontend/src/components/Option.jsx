@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Cookies from 'js-cookie';
 import { SERVER_URL } from '../config';
-import './Option.css';
+import '../styles/Option.css';
 
 const Option = ({ userInfo, setUserInfo, setError, error }) => {
     const [mode, setMode] = useState(null);

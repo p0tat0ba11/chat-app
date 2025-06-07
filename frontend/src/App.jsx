@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Cookies from 'js-cookie';
-import ChatApp from './ChatApp';
-import AuthForm from './AuthForm';
-import ChatRoom from './ChatRoom';
-import './ChatApp.css';
+import ChatApp from './pages/ChatApp';
+import AuthForm from './pages/AuthForm';
+import ChatRoom from './pages/ChatRoom';
 
 function App() {
     const [user, setUser] = useState(null);
